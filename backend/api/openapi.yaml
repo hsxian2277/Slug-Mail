@@ -1,0 +1,304 @@
+#
+# CSE186 Assignment 8 Backend
+#
+
+openapi: '3.0.3'
+
+info:
+  description: CSE186 Assignment 8 Backend
+  version: 0.1.0
+  title: CSE186 Assignment 8 Backend
+
+servers:
+  - url: http://localhost:3010
+
+paths:
+  /v0/dummy:
+    get:
+      description: Dummy Endpoint
+      responses:
+        200:
+          description: Succesful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v0/login:
+    post:
+      description: Login
+      requestBody:
+        description: Login info
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        401:
+          description: Unauthorized
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v0/mailbox/{address}:
+    get:
+      security:
+        - bearerAuth: []
+      description: Get mailboxes
+      parameters:
+        - name: address
+          in: path
+          description: Email of user
+          required: true
+          schema:
+            type: string
+            format: email
+        - name: starred
+          in: query
+          description: Whether to get number of starred mails
+          required: false
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: List of mailboxes found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MailboxList'
+        401:
+          description: Unauthorized
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v0/mail/{address}:
+    get:
+      security:
+        - bearerAuth: []
+      description: Get email
+      parameters:
+        - name: address
+          in: path
+          description: Email of user
+          required: true
+          schema:
+            type: string
+            format: email
+        - name: mailbox
+          in: query
+          description: Name of mailbox
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: query
+          description: Id of an email
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: starred
+          in: query
+          description: Whether email is starred
+          required: false
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Email found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MailList'
+        401:
+          description: Unauthorized
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      security:
+        - bearerAuth: []
+      description: Replace the email with new properties
+      parameters:
+        - name: address
+          in: path
+          description: Email of user
+          required: true
+          schema:
+            type: string
+            format: email
+        - name: id
+          in: query
+          description: Id of the mail to replace
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: unread
+          in: query
+          description: Whether an email is read
+          required: true
+          schema:
+            type: boolean
+        - name: starred
+          in: query
+          description: Whether an email is starred
+          required: true
+          schema:
+            type: boolean
+        - name: mailbox
+          in: query
+          description: Destination
+          required: false
+          schema:
+            type: string
+      responses:
+        204:
+          description: Move successful
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    DummyResponse:
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    Error:
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+      required:
+        - message
+
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        accessToken:
+          type: string
+      required:
+        - email
+        - name
+        - accessToken
+
+    MailboxList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Mailbox'
+
+    MailList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Mail'
+
+    Mailbox:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        count:
+          type: string
+      required:
+        - name
+        - count
+
+    FromTo:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+      required:
+        - name
+        - email
+
+    Mail:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        from:
+          $ref: '#/components/schemas/FromTo'
+        to:
+          $ref: '#/components/schemas/FromTo'
+        subject:
+          type: string
+        received:
+          type: string
+        content:
+          type: string
+        unread:
+          type: boolean
+        starred:
+          type: boolean
+      required:
+        - id
+        - from
+        - to
+        - subject
+        - received
+        - content
+        - unread
+        - starred
+    
+    Credentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
